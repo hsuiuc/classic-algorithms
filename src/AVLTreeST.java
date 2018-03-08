@@ -1,4 +1,6 @@
+import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 
 /**
  *  The {@code AVLTreeST} class represents an ordered symbol table of
@@ -321,5 +323,192 @@ public class AVLTreeST<Key extends Comparable<Key>, Value> {
         x.size = 1 + size(x.left) + size(x.right);
         x.height = Math.max(height(x.left), height(x.right)) + 1;
         return balance(x);
+    }
+
+    public Key floor(Key key) {
+        if (key == null) throw new IllegalArgumentException("argument to floor() is null");
+        if (isEmpty()) throw new NoSuchElementException("call floor() with empty tree");
+        Node x = floor(root, key);
+        if (x == null) {
+            return null;
+        } else {
+            return x.key;
+        }
+    }
+
+    private Node floor(Node x, Key key) {
+        if (x == null) return null;
+        int cmp = key.compareTo(x.key);
+        if (cmp == 0) return x;
+        if (cmp < 0) return floor(x.left, key);
+        Node y = floor(x.right, key);
+        if (y == null) {
+            return x;
+        } else {
+            return y;
+        }
+    }
+
+    public Key ceiling(Key key) {
+        if (key == null) throw new IllegalArgumentException("argument to ceiling() is null");
+        if (isEmpty()) throw new NoSuchElementException("call ceiling() with empty tree");
+        Node x = ceiling(root, key);
+        if (x == null) {
+            return null;
+        } else {
+            return x.key;
+        }
+    }
+
+    private Node ceiling(Node x, Key key) {
+        if (x == null) return null;
+        int cmp = key.compareTo(x.key);
+        if (cmp == 0) return x;
+        if (cmp > 0) return ceiling(x.right, key);
+        Node y = ceiling(x.left, key);
+        if (y == null) {
+            return x;
+        } else {
+            return y;
+        }
+    }
+
+    /**
+     * select the kth smallest key in the tree
+     * @param k the order
+     * @return the kth smallest key in the tree
+     */
+    public Key select(int k) {
+        if (k < 0 || k >= size()) throw new IllegalArgumentException("k is not in range 0 - " + (size() - 1));
+        Node x = select(root, k);
+        return x.key;
+    }
+
+    private Node select(Node x, int k) {
+        if (x == null) return null;
+        int numInLeft = size(x.left);
+        if (k < numInLeft) {
+            return select(x.left, k);
+        } else if (k > numInLeft) {
+            return select(x.right, k - numInLeft - 1);
+        } else {
+            return x;
+        }
+    }
+
+    /**
+     * return the number of keys strictly smaller than key in the tree
+     * @param key the key
+     * @return number of keys smaller than the key in the tree
+     */
+    public int rank(Key key) {
+        if (key == null) throw new IllegalArgumentException("argument to rank() is null");
+        if (isEmpty()) throw new NoSuchElementException("call rank() with empty tree");
+        return rank(root, key);
+    }
+
+    private int rank(Node x, Key key) {
+        if (x == null) return 0;
+        int cmp = key.compareTo(x.key);
+        if (cmp < 0) {
+            return rank(x.left, key);
+        } else if (cmp > 0) {
+            return size(x.left) + 1 + rank(x.right, key);
+        } else {
+            return size(x.left);
+        }
+    }
+
+    /**
+     * return all the keys in the tree
+     * following in-order traversal
+     * @return all the keys in the tree following in-order traversal
+     */
+    public Iterable<Key> keys() {
+        return keysInOrder();
+    }
+
+    private Iterable<Key> keysInOrder() {
+        Queue<Key> queue = new LinkedList<>();
+        keysInOrder(root, queue);
+        return queue;
+    }
+
+    private void keysInOrder(Node x, Queue<Key> queue) {
+        if (x == null) return;
+        keysInOrder(x.left, queue);
+        queue.add(x.key);
+        keysInOrder(x.right, queue);
+    }
+
+    /**
+     * return all the keys in the tree following level order
+     * @return all the keys in the tree following level order
+     */
+    public Iterable<Key> keysLevelOrder() {
+        Queue<Key> queue = new LinkedList<>();
+        if (isEmpty()) {
+            Queue<Node> queue2 = new LinkedList<>();
+            queue2.add(root);
+            while (queue2.isEmpty()) {
+                Node x = queue2.poll();
+                queue.add(x.key);
+                if (x.left != null)
+                    queue2.add(x.left);
+                if (x.right != null)
+                    queue2.add(x.right);
+            }
+        }
+        return queue;
+    }
+
+    private boolean check() {
+        if (!isBST()) System.out.println("symmetric order not consistent");
+        if (!isAVL()) System.out.println("AVL property not consistent");
+        if (!isSizeConsistent()) System.out.println("subtree counts not consistent");
+        if (!isRankConsistent()) System.out.println("ranks not consistent");
+        return true;
+    }
+
+    private boolean isBST() {
+        return isBST(root, null, null);
+    }
+
+    private boolean isBST(Node x, Key min, Key max) {
+        if (x == null) return true;
+        if (min != null && x.key.compareTo(min) <= 0) return false;
+        if (max != null && x.key.compareTo(max) >= 0) return false;
+        return isBST(x.left, min, x.key) && isBST(x.right, x.key, max);
+    }
+
+    private boolean isAVL() {
+        return isAVL(root);
+    }
+
+    private boolean isAVL(Node x) {
+        if (x == null) return true;
+        int bf = balanceFactor(x);
+        if (bf < -1 || bf > 1) return false;
+        return isAVL(x.left) && isAVL(x.right);
+    }
+
+    private boolean isSizeConsistent() {
+        return isSizeConsistent(root);
+    }
+
+    private boolean isSizeConsistent(Node x) {
+        if (x == null) return true;
+        if (x.size != size(x.left) + size(x.right) + 1) return false;
+        return isSizeConsistent(x.left) && isSizeConsistent(x.right);
+    }
+
+    private boolean isRankConsistent() {
+        for (int i = 0; i < size(); i++) {
+            if (i != rank(select(i))) return false;
+        }
+        for (Key key : keys()) {
+            if (key.compareTo(select(rank(key))) != 0) return false;
+        }
+        return true;
     }
 }
