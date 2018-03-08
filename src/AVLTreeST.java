@@ -1,3 +1,5 @@
+import java.util.NoSuchElementException;
+
 /**
  *  The {@code AVLTreeST} class represents an ordered symbol table of
  *  generic key-value pairs. It supports the usual <em>put</em>, <em>get</em>,
@@ -156,6 +158,12 @@ public class AVLTreeST<Key extends Comparable<Key>, Value> {
         return get(key) != null;
     }
 
+    /**
+     * put a key value pair into the tree
+     * if the value is null, delete the key from the tree
+     * @param key the key
+     * @param value the value
+     */
     public void put(Key key, Value value) {
         if (key == null) throw new IllegalArgumentException("argument to put() is null");
         if (value == null) {
@@ -223,5 +231,95 @@ public class AVLTreeST<Key extends Comparable<Key>, Value> {
         return height(x.left) - height(x.right);
     }
 
+    /**
+     * delete a key from the tree if present
+     * @param key the key
+     */
+    public void delete(Key key) {
+        if (key == null) throw new IllegalArgumentException("argument to delete() is null");
+        if (!contains(key)) return;
+        root = delete(root, key);
+        assert check();
+    }
 
+    /**
+     * delete a key from the subtree
+     * has done contains() before, so key must be present in the subtree
+     * x will not be null
+     * @param x the subtree
+     * @param key the key
+     * @return the subtree root
+     */
+    private Node delete(Node x, Key key) {
+        int cmp = key.compareTo(x.key);
+        if (cmp < 0) {
+            x.left = delete(x.left, key);
+        } else if (cmp > 0) {
+            x.right = delete(x.right, key);
+        } else {
+            //key == x.key
+            if (x.left == null) {
+                return x.right;
+            } else if (x.right == null) {
+                return x.left;
+            } else {
+                //exchange x with its successor in in-order traversal
+                Node y = x;
+                x = min(y.right); //find its successor
+                x.right = deleteMin(y.right);
+                x.left = y.left;
+            }
+        }
+        x.size = 1 + size(x.left) + size(x.right);
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        return balance(x);
+    }
+
+    public Key min() {
+        if (isEmpty()) throw new NoSuchElementException("call min() with empty tree");
+        return min(root).key;
+    }
+
+    private Node min(Node x) {
+        if (x.left == null) return x;
+        return min(x.left);
+    }
+
+    public Key max() {
+        if (isEmpty()) throw new NoSuchElementException("call max() with empty tree");
+        return max(root).key;
+    }
+
+    private Node max(Node x) {
+        if (x.right == null) return x;
+        return max(x.right);
+    }
+
+    public void deleteMin() {
+        if (isEmpty()) throw new NoSuchElementException("call deleteMin() with empty tree");
+        root = deleteMin(root);
+        assert check();
+    }
+
+    private Node deleteMin(Node x) {
+        if (x.left == null) return x.right;
+        x.left = deleteMin(x.left);
+        x.size = 1 + size(x.left) + size(x.right);
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        return balance(x);
+    }
+
+    public void deleteMax() {
+        if (isEmpty()) throw new NoSuchElementException("call deleteMax() with empty tree");
+        root = deleteMax(root);
+        assert check();
+    }
+
+    private Node deleteMax(Node x) {
+        if (x.right == null) return x;
+        x.right = deleteMax(x.right);
+        x.size = 1 + size(x.left) + size(x.right);
+        x.height = Math.max(height(x.left), height(x.right)) + 1;
+        return balance(x);
+    }
 }
